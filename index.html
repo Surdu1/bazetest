@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .quiz-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+        }
+        .quiz-header {
+            padding: 20px;
+            background-color: #4a6fa5;
+            color: white;
+        }
+        .quiz-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .quiz-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .quiz-body {
+            padding: 20px;
+        }
+        #question {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        .answer-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .answer-option {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .answer-option:hover {
+            border-color: #4a6fa5;
+        }
+        .answer-option.selected {
+            border-color: #4a6fa5;
+            background-color: #f0f7ff;
+        }
+        .answer-option.correct {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+        .answer-option.incorrect {
+            border-color: #f44336;
+            background-color: #ffebee;
+        }
+        .answer-option img {
+            max-width: 100%;
+            max-height: 120px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            background-color: #4a6fa5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #3a5a80;
+        }
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .feedback {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .correct-feedback {
+            background-color: #e8f5e9;
+            color: #4CAF50;
+        }
+        .incorrect-feedback {
+            background-color: #ffebee;
+            color: #f44336;
+        }
+        .hide {
+            display: none;
+        }
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .progress-bar {
+            height: 10px;
+            background-color: #4a6fa5;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+        .review-info {
+            background-color: #fff3e0;
+            color: #e65100;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 id="quiz-title">Advanced Knowledge Quiz</h1>
+            <div class="quiz-info">
+                <span id="question-counter">Question 1 of 10</span>
+                <span id="score">Score: 0</span>
+            </div>
+            <div class="progress-container">
+                <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="quiz-body">
+            <div id="review-info" class="review-info hide">
+                Review Mode: Answer these questions correctly to complete the quiz
+            </div>
+            <div id="question-container">
+                <div id="question-image-container" class="question-image"></div>
+                <h2 id="question">Loading questions...</h2>
+                <div id="feedback" class="feedback hide"></div>
+                <div id="answer-container" class="answer-container">
+                    <!-- Answer options will be added here by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="start-btn" class="btn">Start Quiz</button>
+                <button id="submit-btn" class="btn hide">Submit Answer</button>
+                <button id="next-btn" class="btn hide">Next Question</button>
+                <button id="restart-btn" class="btn hide">Restart Quiz</button>
+                <button id="review-btn" class="btn hide">Review Mistakes</button>
+                <button id="try-again-btn" class="btn hide">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const questionElement = document.getElementById("question");
+        const answerContainer = document.getElementById("answer-container");
+        const nextButton = document.getElementById("next-btn");
+        const startButton = document.getElementById("start-btn");
+        const submitButton = document.getElementById("submit-btn");
+        const restartButton = document.getElementById("restart-btn");
+        const reviewButton = document.getElementById("review-btn");
+        const tryAgainButton = document.getElementById("try-again-btn");
+        const questionCounter = document.getElementById("question-counter");
+        const scoreElement = document.getElementById("score");
+        const questionImageContainer = document.getElementById("question-image-container");
+        const feedbackElement = document.getElementById("feedback");
+        const progressBar = document.getElementById("progress-bar");
+        const reviewInfo = document.getElementById("review-info");
+
+        // Quiz state variables
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let quizStarted = false;
+        let reviewMode = false;
+        let incorrectQuestions = [];
+        let incorrectQuestionIndices = [];
+        let selectedAnswers = [];
+        let reviewAttempts = {};
+
+        // Quiz questions with images in both questions and answers
+        const questions = [
+            {
+                question: "Cât este impedanța complexă a unui condensator cu capacitatea de 1 µF la frecvența de 1 MHz?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. -j/(2π)", correct: true, imageUrl: "" },
+                    { text: "b. Niciun răspuns corect", correct: false, imageUrl: "" },
+                    { text: "c. -j", correct: false, imageUrl: "" },
+                    { text: "d. 0", correct: false, imageUrl: "" },
+                    { text: "e. j2π", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+            {
+                question: "Fie o porțiune de circuit. Cât este valoarea tensiunii U la bornele acestei laturi?",
+                imageUrl: "./img/11.png",
+                answers: [
+                    { text: "a. Niciun răspuns corect", correct: false, imageUrl: "" },
+                    { text: "b. 100 V", correct: false, imageUrl: "" },
+                    { text: "c. 20 V", correct: false, imageUrl: "" },
+                    { text: "d. 140 V", correct: true, imageUrl: "" },
+                    { text: "e. 0 V", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Aliați valorile curentilor I1, I2, I3 din schema alăturată:",
+                imageUrl: "./img/21.png",
+                answers: [
+                    { text: "a. 3A, 1A, 0A", correct: false, imageUrl: "" },
+                    { text: "b. 3A, -1A, 0A", correct: true, imageUrl: "" },
+                    { text: "c. Niciun raspuns corect.", correct: false, imageUrl: "" },
+                    { text: "d. 2A, 0A, -3A", correct: false, imageUrl: "" },
+                    { text: "e. 1A, -1A, 2A", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Care este valoarea efectivă a curentului în cele trei cazuri?",
+                imageUrl: "./img/3.png",
+                answers: [
+                    { text: "a. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "b. (1) 4A, (2) ∞A, (3) 0A", correct: false, imageUrl: "" },
+                    { text: "c. (1) 4A, (2) 9mA, (3) 3μA", correct: false, imageUrl: "" },
+                    { text: "d. (1) 4A, (2) 14,32A, (3) 0,754A", correct: true, imageUrl: "" },
+                    { text: "e. (1) 4A, (2) 0A, (3) 0A", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Fie un circuit RC serie cu tensiunile efective UR = 12V și UC = 5V. Cât este valoarea efectivă a tensiunii de alimentare a circuitului?",
+                imageUrl: "./img/4.png",
+                answers: [
+                    { text: "a. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "b. 13V", correct: true, imageUrl: "" },
+                    { text: "c. 12V", correct: false, imageUrl: "" },
+                    { text: "d. 7V", correct: false, imageUrl: "" },
+                    { text: "e. 17V", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "În circuitul din figura de mai jos, la momentul t=0, contactul K se mută de pe borna (a) pe borna (b). Aflați care este valoarea tensiunii pe condensator (u<sub>C</sub>) la momentul t=75µs.",
+                imageUrl: "./img/5.png",
+                answers: [
+                    { text: "a. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "b. -3V", correct: false, imageUrl: "" },
+                    { text: "c. 1,08V", correct: false, imageUrl: "" },
+                    { text: "d. 1,41V", correct: true, imageUrl: "" },
+                    { text: "e. 0V", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Care este semnalul sinusoidal corespunzător imaginii în complex I = 10j?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. i(t) = 10j·sin(ωt) A", correct: false, imageUrl: "" },
+                    { text: "b. i(t) = 10√2·sin(ωt) A", correct: false, imageUrl: "" },
+                    { text: "c. Niciun răspuns corect", correct: false, imageUrl: "" },
+                    { text: "d. i(t) = 10·sin(ωt + π/2) A", correct: false, imageUrl: "" },
+                    { text: "e. i(t) = 10√2·sin(ωt + π/2) A", correct: true, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Dacă imaginea Laplace a unei tensiuni este U(s) = 1/(s + 2), atunci expresia tensiunii u(t) va fi:",
+                imageUrl: "",
+                answers: [
+                    { text: "", correct: true, imageUrl: "./img/61.png" },
+                    { text: "b. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "", correct: false, imageUrl: "./img/62.png" },
+                    { text: "d. 1/(t + 2)", correct: false, imageUrl: "" },
+                    { text: "e. sin(2t)", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Fie o sursă de tensiune cu valoarea u(t) = 10 + 12sin(ωt) + 4√2sin(2ωt + π/2) V și parcursă în sens pozitiv de curentul i(t) = 2 + √2sin(2ωt + π/2) A. Cât este puterea activă debitată de sursă?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. 24 W", correct: true, imageUrl: "" },
+                    { text: "b. 36 W", correct: false, imageUrl: "" },
+                    { text: "c. 20 W", correct: false, imageUrl: "" },
+                    { text: "d. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "e. 0 W", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Știind că toate rezistoarele și sursele de tensiune din circuit sunt identice (R = 4Ω și E = 8V), aflați valoarea curentului prin R.",
+                imageUrl: "./img/7.png",
+                answers: [
+                    { text: "a. 6A", correct: false, imageUrl: "" },
+                    { text: "b. 0A", correct: false, imageUrl: "" },
+                    { text: "c. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "d. 4A", correct: true, imageUrl: "" },
+                    { text: "e. 2A", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Dacă o bobină cu inductivitatea L = 0.2H este parcursă de curentul i(t) = 10√2·sin(ωt) A, ω = 100 rad/s, cât este tensiunea la bornele ei?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "b. u(t) = 200√2·sin(ωt + π/2) V", correct: true, imageUrl: "" },
+                    { text: "c. u(t) = 200√2·sin(ωt) V", correct: false, imageUrl: "" },
+                    { text: "d. u(t) = 0 V", correct: false, imageUrl: "" },
+                    { text: "e. u(t) = 2√2·sin(ωt) V", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Rezistorul de 120Ω din schema circuitului de mai jos consumă o putere de 30W. Care este valoarea tensiunii sursei de alimentare (E)?",
+                imageUrl: "./img/8.png",
+                answers: [
+                    { text: "a. 45V", correct: false, imageUrl: "" },
+                    { text: "b. 68V", correct: false, imageUrl: "" },
+                    { text: "c. 60V", correct: false, imageUrl: "" },
+                    { text: "d. 75V", correct: true, imageUrl: "" },
+                    { text: "e. Niciun răspuns.", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Ce valori au Ee și Re în circuitul dat?",
+                imageUrl: "./img/9.png",
+                answers: [
+                    { text: "a. 8V și 1Ω", correct: true, imageUrl: "" },
+                    { text: "b. 16V și 1Ω", correct: false, imageUrl: "" },
+                    { text: "c. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "d. 22V și 10Ω", correct: false, imageUrl: "" },
+                    { text: "e. 22V și 1Ω", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+             {
+                question: "Ce reprezintă condiţiile iniţiale în regim tranzitoriu?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. Valorile surselor de tensiune și curent", correct: false, imageUrl: "" },
+                    { text: "b. Valorile surselor de tensiune", correct: false, imageUrl: "" },
+                    { text: "c. Valorile temperaturii.", correct: false, imageUrl: "" },
+                    { text: "", correct: true, imageUrl: "./img/10.png" },
+                    { text: "e. Niciun răspuns corect.", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                   {
+                question: "În circuitul de mai jos, curentul atinge valoarea maximă cu 1ms înaintea tensiunii sursei. Aflați tipul elementului de circuit necunoscut și valoarea sa.",
+                imageUrl: "./img/1a.png",
+                answers: [
+                    { text: "a. Condensator C = 25,86µF", correct: false, imageUrl: "" },
+                    { text: "b. Sursa de tensiune f = 180Hz", correct: false, imageUrl: "" },
+                    { text: "c. Bobina L = 1/(4π) mH", correct: true, imageUrl: "" },
+                    { text: "d. Rezistor R = 180Ω", correct: false, imageUrl: "" },
+                    { text: "e. Niciun răspuns corect.", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                   {
+                question: "Cât este impedanța complexă a unui condensator cu capacitatea de 1µF la frecvența de 1MHz?",
+                imageUrl: "",
+                answers: [
+                    { text: "a.-j", correct: false, imageUrl: "" },
+                    { text: "b.j2π", correct: false, imageUrl: "" },
+                    { text: "c.0", correct: false, imageUrl: "" },
+                    { text: "d. Niciun răspuns corect", correct: false, imageUrl: "" },
+                    { text: "", correct: true, imageUrl: "./img/1b.png" }
+                ],
+                multipleCorrect: true
+            },
+                   {
+                question: "Cât este valoarea sa efectivă?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. 0A", correct: false, imageUrl: "" },
+                    { text: "b. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "c. 40 A", correct: false, imageUrl: "" },
+                    { text: "d. 20 A", correct: true, imageUrl: "" },
+                    { text: "e. 10 A", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                 {
+                question: "",
+                imageUrl: "./img/1c.png",
+                answers: [
+                    { text: "a.1+j", correct: false, imageUrl: "" },
+                    { text: "b.0.5(1+j)", correct: true, imageUrl: "" },
+                    { text: "c.1-j", correct: false, imageUrl: "" },
+                    { text: "d.0.5", correct: false, imageUrl: "" },
+                    { text: "e. Niciun răspuns corect.", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                 {
+                question: "Tensiunea de linie la un generator trifazat este:",
+                imageUrl: "",
+                answers: [
+                    { text: "a. Niciun răspuns corect", correct: false, imageUrl: "" },
+                    { text: "b. Tensiunea între o fază și nul.", correct: false, imageUrl: "" },
+                    { text: "c. Tensiunea inițială.", correct: false, imageUrl: "" },
+                    { text: "d. Tensiunea de-a lungul liniei.", correct: false, imageUrl: "" },
+                    { text: "e. Tensiunea între oricare două faze.", correct: true, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                 {
+                question: "Selectați unul sau mai multe răspunsuri corecte:",
+                imageUrl: "./img/2a.png",
+                answers: [
+                    { text: "a. Rezistivitatea cilindrului A este mai mică decât rezistivitatea cilindrului B.", correct: false, imageUrl: "" },
+                    { text: "b. Câmpul electric în cilindrul A este mai mic decât în cilindrul B.", correct: false, imageUrl: "" },
+                    { text: "c. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "d. Puterea disipată în cilindrul A este mai mare decât în cilindrul B.", correct: true, imageUrl: "" },
+                    { text: "e. Intensitatea curentului electric în cilindrul A este mai mare decât în cilindrul B.", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+            {
+                question: "Ce se întâmplă cu rezistența unui conductor omogen de formă cilindrică, dacă pe jumătate din lungimea acestuia, secțiunea (aria transversală) se reduce la jumătate?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. Scade la jumătate.", correct: false, imageUrl: "" },
+                    { text: "b. Se dublează.", correct: false, imageUrl: "" },
+                    { text: "c. Devine de 4 ori mai mică.", correct: false, imageUrl: "" },
+                    { text: "d. Crește de 1.5 ori.", correct: true, imageUrl: "" },
+                    { text: "e. Niciun răspuns corect.", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                {
+                question: "O bobina cu 200 de spire având suprafața fiecărei spire de 30 cm² se rotește în câmp magnetic uniform de valoare 4 m³. Spira se rotește de la poziția orizontală la poziția verticală într-un interval de timp de 0.03 s. Cât este valoarea absolută a tensiunii induse în bobină?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. 12 V", correct: false, imageUrl: "" },
+                    { text: "b. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "c. 0.03 V", correct: false, imageUrl: "" },
+                    { text: "d. 24 mV", correct: false, imageUrl: "" },
+                    { text: "e. 0.08 V", correct: true, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                {
+                question: "Unitatea de măsură pentru capacitatea condensatorului și pentru inductivitatea bobinei (C și L):",
+                imageUrl: "",
+                answers: [
+                    { text: "a. C și T", correct: false, imageUrl: "" },
+                    { text: "b. V și A", correct: false, imageUrl: "" },
+                    { text: "c. F și H", correct: true, imageUrl: "" },
+                    { text: "d. F și Ω", correct: false, imageUrl: "" },
+                    { text: "e. Niciun răspuns corect.", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                {
+                question: "Densitatea curentului electric de conducție este o mărime:",
+                imageUrl: "",
+                answers: [
+                    { text: "a. globală", correct: false, imageUrl: "" },
+                    { text: "b. locală", correct: true, imageUrl: "" },
+                    { text: "c. de proces", correct: false, imageUrl: "" },
+                    { text: "d. primitivă", correct: false, imageUrl: "" },
+                    { text: "e. Niciun răspuns corect.", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                {
+                question: "",
+                imageUrl: "./img/2b.png",
+                answers: [
+                    { text: "", correct: false, imageUrl: "./img/2b1.png" },
+                    { text: "", correct: false, imageUrl: "./img/2b2.png" },
+                    { text: "", correct: false, imageUrl: "./img/2b4.png" },
+                    { text: "", correct: true, imageUrl: "./img/2b3.png" },
+                    { text: "", correct: false, imageUrl: "./img/2b5.png" }
+                ],
+                multipleCorrect: true
+            },
+                     {
+                question: "",
+                imageUrl: "./img/3a.png",
+                answers: [
+                    { text: "a. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "b. 5 V", correct: false, imageUrl: "" },
+                    { text: "c. 6 V", correct: true, imageUrl: "" },
+                    { text: "d. 7 V", correct: false, imageUrl: "" },
+                    { text: " 4 V", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                     {
+                question: "",
+                imageUrl: "./img/4a1.png",
+                answers: [
+                    { text: "a. În jos", correct: false, imageUrl: "" },
+                    { text: "b. Spre dreapta", correct: false, imageUrl: "" },
+                    { text: "c. În sus", correct: true, imageUrl: "" },
+                    { text: "d. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "e. Spre stânga", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                     {
+                question: "Cât este valoarea absolută a intensităţii câmpului magnetic într-un punct situat în vid, la 2 m de un fir rectiliniu, infinit extins, parcurs de un curent continuu de 10 A?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. 5 A/m", correct: false, imageUrl: "" },
+                    { text: "b. 0 A/m", correct: false, imageUrl: "" },
+                    { text: "c. 20.37 A", correct: false, imageUrl: "" },
+                    { text: "d. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "e. 0.796 A/m", correct: true, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                          {
+                question: "",
+                imageUrl: "./img/4b.png",
+                answers: [
+                    { text: "a. A și T", correct: false, imageUrl: "" },
+                    { text: "b. V/m și C", correct: true, imageUrl: "" },
+                    { text: "c. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "d. C și Wb", correct: false, imageUrl: "" },
+                    { text: "e. Vm și C", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                          {
+                question: "În inelul A, curentul circulă în sensul arătat de săgeată și scade ca intensitate. Ce sens va avea curentul electric indus în inelul B?",
+                imageUrl: "./img/4c.png",
+                answers: [
+                    { text: "a. În sens opus celui din inelul A", correct: true, imageUrl: "" },
+                    { text: "b. Sensul curentului depinde de substanța inelului B", correct: false, imageUrl: "" },
+                    { text: "c. În același sens ca și cel din inelul A", correct: false, imageUrl: "" },
+                    { text: "d. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "e. Nu depinde de sensul curentului din inelul A", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                          {
+                question: "",
+                imageUrl: "./img/5a.png",
+                answers: [
+                    { text: "a. V/m și C", correct: true, imageUrl: "" },
+                    { text: "b. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "c. Vm și C", correct: false, imageUrl: "" },
+                    { text: "d. C și Wb", correct: false, imageUrl: "" },
+                    { text: "e. A și T", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                             {
+                question: "",
+                imageUrl: "./img/5b.png",
+                answers: [
+                    { text: "a. 6,24×10¹²", correct: true, imageUrl: "" },
+                    { text: "b. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "c. 0", correct: false, imageUrl: "" },
+                    { text: "d. 1", correct: false, imageUrl: "" },
+                    { text: "e. 1,6×10⁻¹⁹", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                             {
+                question: "",
+                imageUrl: "./img/5c.png",
+                answers: [
+                    { text: "a. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "b. V/m și Wb", correct: false, imageUrl: "" },
+                    { text: "c. A/m și T", correct: false, imageUrl: "" },
+                    { text: "d. A și T", correct: false, imageUrl: "" },
+                    { text: "e. A/m și Wb", correct: true, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                             {
+                question: "Cum conectez trei condensatoare identice având fiecare câte 2 nF pentru a obține o capacitate echivalentă de 3 nF?",
+                imageUrl: "",
+                answers: [
+                    { text: "a. un condensator înseriat cu două în paralel", correct: false, imageUrl: "" },
+                    { text: "b. toate trei înseriate", correct: false, imageUrl: "" },
+                    { text: "c. toate trei în paralel", correct: false, imageUrl: "" },
+                    { text: "d. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "e. un condensator în paralel cu două înseriate", correct: true, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },
+                                     {
+                question: "Cât este sarcina electrică pe condensatorul C₂ și cât este tensiunea la bornele condensatorului C₃?",
+                imageUrl: "./img/5f.png",
+                answers: [
+                    { text: "a. Niciun răspuns corect.", correct: false, imageUrl: "" },
+                    { text: "b. 400 nC și 20 V", correct: false, imageUrl: "" },
+                    { text: "c. 600 nC și 20 V", correct: false, imageUrl: "" },
+                    { text: "d. 400 nC și 10 V", correct: true, imageUrl: "" },
+                    { text: "e. 900 nC și 10 V", correct: false, imageUrl: "" }
+                ],
+                multipleCorrect: true
+            },        
+        ];
+
+        // Start the quiz
+        function startQuiz() {
+            quizStarted = true;
+            reviewMode = false;
+            startButton.classList.add("hide");
+            submitButton.classList.remove("hide");
+            reviewInfo.classList.add("hide");
+            currentQuestionIndex = 0;
+            score = 0;
+            incorrectQuestions = [];
+            incorrectQuestionIndices = [];
+            selectedAnswers = [];
+            reviewAttempts = {};
+            scoreElement.textContent = `Score: ${score}`;
+            updateProgressBar();
+            showQuestion();
+        }
+
+        // Show current question
+        function showQuestion() {
+            resetState();
+            const currentQuestion = reviewMode ? 
+                questions[incorrectQuestionIndices[currentQuestionIndex]] : 
+                questions[currentQuestionIndex];
+                
+            const questionNumber = currentQuestionIndex + 1;
+            const totalQuestions = reviewMode ? incorrectQuestionIndices.length : questions.length;
+            
+            questionCounter.textContent = `Question ${questionNumber} of ${totalQuestions}`;
+            questionElement.textContent = currentQuestion.question;
+            
+            // Clear previous image
+            questionImageContainer.innerHTML = '';
+            
+            // Add question image if it exists
+            if (currentQuestion.imageUrl) {
+                const img = document.createElement('img');
+                img.src = currentQuestion.imageUrl;
+                img.alt = 'Question image';
+                img.style.maxHeight = '200px';
+                questionImageContainer.appendChild(img);
+            }
+            
+            // Create answer options
+            currentQuestion.answers.forEach((answer, index) => {
+                const answerOption = document.createElement("div");
+                answerOption.classList.add("answer-option");
+                answerOption.dataset.index = index;
+                
+                // Add answer image if it exists
+                if (answer.imageUrl) {
+                    const img = document.createElement('img');
+                    img.src = answer.imageUrl;
+                    img.alt = answer.text;
+                    answerOption.appendChild(img);
+                }
+                
+                // Add answer text
+                const text = document.createElement("span");
+                    text.textContent = answer.text;
+                    answerOption.appendChild(text);
+                
+                // Add click event
+                answerOption.addEventListener("click", () => selectAnswerOption(answerOption, currentQuestion.multipleCorrect));
+                
+                answerContainer.appendChild(answerOption);
+            });
+        }
+
+        // Select answer option
+        function selectAnswerOption(option, multiple) {
+            if (multiple) {
+                option.classList.toggle("selected");
+            } else {
+                // For single answer questions, deselect all others first
+                document.querySelectorAll('.answer-option').forEach(opt => {
+                    opt.classList.remove("selected");
+                });
+                option.classList.add("selected");
+            }
+        }
+
+        // Submit answer
+        function submitAnswer() {
+            const currentQuestionIndexToUse = reviewMode ? 
+                incorrectQuestionIndices[currentQuestionIndex] : 
+                currentQuestionIndex;
+                
+            const currentQuestion = questions[currentQuestionIndexToUse];
+            const selectedOptions = Array.from(document.querySelectorAll('.answer-option.selected'));
+            
+            if (selectedOptions.length === 0) {
+                alert("Please select at least one answer");
+                return;
+            }
+            
+            // Store selected answers for review
+            selectedAnswers[currentQuestionIndexToUse] = selectedOptions.map(opt => parseInt(opt.dataset.index));
+            
+            // Check answers
+            let allCorrect = true;
+            let anySelected = false;
+            let correctCount = 0;
+            let selectedCorrectCount = 0;
+            
+            currentQuestion.answers.forEach((answer, index) => {
+                const option = document.querySelector(`.answer-option[data-index="${index}"]`);
+                const wasSelected = selectedOptions.includes(option);
+                
+                if (answer.correct) {
+                    correctCount++;
+                    if (wasSelected) selectedCorrectCount++;
+                    option.classList.add("correct");
+                    if (!wasSelected) allCorrect = false;
+                } else if (wasSelected) {
+                    option.classList.add("incorrect");
+                    allCorrect = false;
+                }
+                
+                if (wasSelected) anySelected = true;
+                option.classList.remove("selected");
+            });
+            
+            // For multiple correct answers, need to check if all correct were selected
+            if (currentQuestion.multipleCorrect && selectedCorrectCount < correctCount) {
+                allCorrect = false;
+            }
+            
+            // Disable all options after submission
+            document.querySelectorAll('.answer-option').forEach(opt => {
+                opt.style.pointerEvents = 'none';
+            });
+            
+            // Update score and feedback
+            if (allCorrect && anySelected) {
+                if (!reviewMode) {
+                    score++;
+                    scoreElement.textContent = `Score: ${score}`;
+                }
+                
+                feedbackElement.textContent = "Correct! Well done!";
+                feedbackElement.className = "feedback correct-feedback";
+                
+                // In review mode, remove from incorrect questions if answered correctly
+                if (reviewMode) {
+                    const indexInIncorrect = incorrectQuestionIndices.indexOf(currentQuestionIndexToUse);
+                    if (indexInIncorrect !== -1) {
+                        incorrectQuestionIndices.splice(indexInIncorrect, 1);
+                    }
+                }
+            } else {
+                feedbackElement.textContent = currentQuestion.multipleCorrect ? 
+                    "Incorrect. Select all that apply." : 
+                    "Incorrect. Try again.";
+                feedbackElement.className = "feedback incorrect-feedback";
+                
+                // Add to incorrect questions if not already there
+                if (!reviewMode && !incorrectQuestionIndices.includes(currentQuestionIndexToUse)) {
+                    incorrectQuestionIndices.push(currentQuestionIndexToUse);
+                }
+                
+                // Track attempts in review mode
+                if (reviewMode) {
+                    reviewAttempts[currentQuestionIndexToUse] = 
+                        (reviewAttempts[currentQuestionIndexToUse] || 0) + 1;
+                }
+            }
+            
+            feedbackElement.classList.remove("hide");
+            submitButton.classList.add("hide");
+            
+            if (reviewMode) {
+                tryAgainButton.classList.remove("hide");
+            } else {
+                nextButton.classList.remove("hide");
+            }
+            
+            // Show appropriate buttons at the end
+            if (!reviewMode && currentQuestionIndex === questions.length - 1) {
+                nextButton.classList.add("hide");
+                if (incorrectQuestionIndices.length > 0) {
+                    reviewButton.classList.remove("hide");
+                } else {
+                    restartButton.classList.remove("hide");
+                }
+            }
+        }
+
+        // Go to next question
+        function nextQuestion() {
+            currentQuestionIndex++;
+            updateProgressBar();
+            
+            if (currentQuestionIndex < questions.length) {
+                showQuestion();
+                submitButton.classList.remove("hide");
+                nextButton.classList.add("hide");
+                feedbackElement.classList.add("hide");
+            }
+        }
+
+        // Start review mode
+        function startReview() {
+            reviewMode = true;
+            currentQuestionIndex = 0;
+            reviewButton.classList.add("hide");
+            submitButton.classList.remove("hide");
+            reviewInfo.classList.remove("hide");
+            updateProgressBar();
+            showQuestion();
+        }
+
+        // Try again in review mode
+        function tryAgain() {
+            tryAgainButton.classList.add("hide");
+            submitButton.classList.remove("hide");
+            feedbackElement.classList.add("hide");
+            showQuestion();
+        }
+
+        // Restart the quiz
+        function restartQuiz() {
+            quizStarted = false;
+            reviewMode = false;
+            restartButton.classList.add("hide");
+            reviewButton.classList.add("hide");
+            tryAgainButton.classList.add("hide");
+            startButton.classList.remove("hide");
+            reviewInfo.classList.add("hide");
+            questionElement.textContent = "Press Start Quiz to begin";
+            feedbackElement.classList.add("hide");
+            resetState();
+            updateProgressBar();
+        }
+
+        // Reset the quiz state for next question
+        function resetState() {
+            answerContainer.innerHTML = '';
+            feedbackElement.classList.add("hide");
+        }
+
+        // Update progress bar
+        function updateProgressBar() {
+            const progress = reviewMode ? 
+                (currentQuestionIndex / incorrectQuestionIndices.length) * 100 :
+                (currentQuestionIndex / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        // Initialize event listeners
+        startButton.addEventListener("click", startQuiz);
+        submitButton.addEventListener("click", submitAnswer);
+        nextButton.addEventListener("click", nextQuestion);
+        restartButton.addEventListener("click", restartQuiz);
+        reviewButton.addEventListener("click", startReview);
+        tryAgainButton.addEventListener("click", tryAgain);
+
+        // Initialize the quiz
+        resetState();
+    </script>
+</body>
+</html>
